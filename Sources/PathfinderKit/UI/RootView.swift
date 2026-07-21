@@ -6,6 +6,7 @@ public struct RootView: View {
     @State private var store: ResultsStore
     @State private var searchTask: Task<Void, Never>?
     @State private var canUndo: Bool = false
+    @State private var searchInResults = false
     private let ops = FileOps()
     private let replaceEngine = ReplaceEngine()
 
@@ -24,7 +25,9 @@ public struct RootView: View {
         VStack(spacing: 0) {
             SearchBar(model: model, canUndo: canUndo,
                       onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo,
-                      onSearchToggle: toggleSearch, onClear: clearSearch)
+                      onSearchToggle: toggleSearch, onClear: clearSearch,
+                      searchInResults: $searchInResults,
+                      canSearchInResults: !store.files.isEmpty)
             FiltersPanel(model: model)
             Divider()
             HSplitView {
@@ -48,6 +51,8 @@ public struct RootView: View {
             // No folder yet: guide the user through picking one, then search.
             if model.basePath == nil { pickFolder() }
             guard model.basePath != nil else { return }  // picker cancelled
+            // Snapshot the current result files BEFORE runNow resets the store.
+            model.restrictToFiles = searchInResults ? Set(store.files.map { $0.file.path }) : nil
             searchTask?.cancel()
             searchTask = Task { await model.runNow() }
         }
@@ -59,6 +64,8 @@ public struct RootView: View {
         model.pattern = ""
         model.lastError = nil
         store.reset()
+        searchInResults = false
+        model.restrictToFiles = nil
     }
 
     private func pickFolder() {

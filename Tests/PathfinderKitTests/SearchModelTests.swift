@@ -66,6 +66,38 @@ final class SearchModelTests: XCTestCase {
         XCTAssertEqual(store.totalMatches, 5)
     }
 
+    func test_restrictToFilesLimitsMatches() async {
+        let rawA = RawMatch(file: URL(fileURLWithPath: "/x/a.txt"), lineNumber: 1,
+                            matchLine: "x", matchRange: 0..<1)
+        let rawB = RawMatch(file: URL(fileURLWithPath: "/x/b.txt"), lineNumber: 1,
+                            matchLine: "x", matchRange: 0..<1)
+        let engine = FakeEngine(matches: [rawA, rawB])
+
+        // Case 1: restricted to a.txt only.
+        let store1 = ResultsStore()
+        let model1 = SearchModel(engine: engine, store: store1, fileLinesProvider: { _ in ["x"] })
+        model1.pattern = "x"
+        model1.basePath = URL(fileURLWithPath: "/")
+        model1.restrictToFiles = ["/x/a.txt"]
+
+        await model1.runNow()
+
+        XCTAssertEqual(store1.totalMatches, 1)
+        XCTAssertEqual(store1.files.count, 1)
+        XCTAssertEqual(store1.files[0].file.path, "/x/a.txt")
+
+        // Case 2: fresh model/store, no restriction — both matches present.
+        let store2 = ResultsStore()
+        let model2 = SearchModel(engine: engine, store: store2, fileLinesProvider: { _ in ["x"] })
+        model2.pattern = "x"
+        model2.basePath = URL(fileURLWithPath: "/")
+        model2.restrictToFiles = nil
+
+        await model2.runNow()
+
+        XCTAssertEqual(store2.totalMatches, 2)
+    }
+
     func test_invalidRegexSetsRegexError() {
         let model = SearchModel(engine: FakeEngine(), store: ResultsStore(),
                                 fileLinesProvider: { _ in [] })

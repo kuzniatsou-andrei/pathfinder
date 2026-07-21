@@ -16,6 +16,7 @@ public final class SearchModel {
     public private(set) var isSearching: Bool = false
     public var lastError: String?
     public var replacement: String = ""
+    public var restrictToFiles: Set<String>? = nil
 
     private let engine: SearchEngine
     private let store: ResultsStore
@@ -54,6 +55,9 @@ public final class SearchModel {
             for try await raw in engine.grep(query) {
                 if Task.isCancelled { return }
                 if gen == generation {
+                    if let restrictToFiles, !restrictToFiles.contains(raw.file.path) {
+                        continue
+                    }
                     if store.canDisplayMore {
                         let lines = fileLinesProvider(raw.file)
                         let match = assembler.assemble(raw, fileLines: lines,

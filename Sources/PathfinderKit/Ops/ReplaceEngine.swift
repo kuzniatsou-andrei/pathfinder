@@ -17,25 +17,39 @@ public final class ReplaceEngine {
         var skipped: [(URL, String)] = []
         var snapshot: [URL: String] = [:]
 
-        for file in files {
-            guard let original = try? String(contentsOf: file, encoding: .utf8) else {
-                skipped.append((file, "not a UTF-8 text file")); continue
+        // Fail-fast: compile regex once, before any file is touched, so an
+        // invalid pattern throws before we've mutated anything.
+        let regex: NSRegularExpression?
+        switch mode {
+        case .regex: regex = try NSRegularExpression(pattern: pattern)
+        case .text, .fuzzy: regex = nil
+        }
+
+        do {
+            for file in files {
+                guard let original = try? String(contentsOf: file, encoding: .utf8) else {
+                    skipped.append((file, "not a UTF-8 text file")); continue
+                }
+                let updated: String
+                switch mode {
+                case .regex:
+                    updated = regex!.stringByReplacingMatches(
+                        in: original, range: NSRange(original.startIndex..., in: original),
+                        withTemplate: NSRegularExpression.escapedTemplate(for: replacement))
+                case .text, .fuzzy:
+                    updated = original.replacingOccurrences(of: pattern, with: replacement)
+                }
+                if updated != original {
+                    snapshot[file] = original
+                    try updated.write(to: file, atomically: true, encoding: .utf8)
+                    changed.append(file)
+                }
             }
-            let updated: String
-            switch mode {
-            case .regex:
-                let re = try NSRegularExpression(pattern: pattern)
-                updated = re.stringByReplacingMatches(
-                    in: original, range: NSRange(original.startIndex..., in: original),
-                    withTemplate: NSRegularExpression.escapedTemplate(for: replacement))
-            case .text, .fuzzy:
-                updated = original.replacingOccurrences(of: pattern, with: replacement)
-            }
-            if updated != original {
-                snapshot[file] = original
-                try updated.write(to: file, atomically: true, encoding: .utf8)
-                changed.append(file)
-            }
+        } catch {
+            // Preserve the undo snapshot for whatever was already written
+            // before the failure, so undo() can still roll those files back.
+            if !snapshot.isEmpty { undoStack.append(snapshot) }
+            throw error
         }
         if !snapshot.isEmpty { undoStack.append(snapshot) }
         return ReplaceReport(changedFiles: changed, skipped: skipped)

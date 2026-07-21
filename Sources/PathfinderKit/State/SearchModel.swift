@@ -2,6 +2,7 @@ import Foundation
 import Observation
 
 @Observable
+@MainActor
 public final class SearchModel {
     public var pattern: String = ""
     public var mode: SearchMode = .text
@@ -20,6 +21,7 @@ public final class SearchModel {
     private let fileLinesProvider: @Sendable (URL) -> [String]
     private let debounceMs: Int
     private let assembler = ContextAssembler()
+    private var generation = 0
 
     public init(engine: SearchEngine, store: ResultsStore,
                 fileLinesProvider: @escaping @Sendable (URL) -> [String],
@@ -39,20 +41,21 @@ public final class SearchModel {
 
     public func runNow() async {
         guard let query = makeQuery() else { store.reset(); return }
+        generation &+= 1; let gen = generation
         isSearching = true; lastError = nil; store.reset()
-        defer { isSearching = false }
+        defer { if gen == generation { isSearching = false } }
         do {
             for try await raw in engine.grep(query) {
                 if Task.isCancelled { return }
                 let lines = fileLinesProvider(raw.file)
                 let match = assembler.assemble(raw, fileLines: lines,
                                                before: query.contextBefore, after: query.contextAfter)
-                store.add(match)
+                if gen == generation { store.add(match) }
             }
         } catch is CancellationError {
             // superseded by a newer search; leave partial results
         } catch {
-            lastError = String(describing: error)
+            if gen == generation { lastError = String(describing: error) }
         }
     }
 }

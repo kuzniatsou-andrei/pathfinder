@@ -1,6 +1,7 @@
 import XCTest
 @testable import PathfinderKit
 
+@MainActor
 final class SearchModelTests: XCTestCase {
     func test_runPopulatesStoreWithContext() async {
         let raw = RawMatch(file: URL(fileURLWithPath: "/f"), lineNumber: 2,

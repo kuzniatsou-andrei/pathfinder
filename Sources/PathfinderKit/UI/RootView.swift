@@ -40,7 +40,7 @@ public struct RootView: View {
                             onOpen: { ops.open($0, withEditor: nil) },
                             onDelete: runDelete)
                     .frame(minWidth: 320)
-                PreviewPane(store: store).frame(minWidth: 360)
+                PreviewPane(store: store, model: model).frame(minWidth: 360)
             }
             Divider()
             StatusBar(store: store, model: model)

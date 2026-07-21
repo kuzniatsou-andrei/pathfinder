@@ -3,6 +3,8 @@ import SwiftUI
 public struct PreviewPane: View {
     let store: ResultsStore
     let model: SearchModel
+    @State private var content: AttributedString?
+    @State private var loadedFor: String?
 
     public init(store: ResultsStore, model: SearchModel) {
         self.store = store; self.model = model
@@ -10,10 +12,9 @@ public struct PreviewPane: View {
 
     public var body: some View {
         Group {
-            if let m = store.selectedMatch,
-               let text = try? String(contentsOf: m.file, encoding: .utf8) {
+            if let m = store.selectedMatch {
                 VStack(alignment: .leading, spacing: 0) {
-                    // File path header — selectable so it can be read/copied.
+                    // File path header — updates instantly on selection; selectable.
                     Text(m.file.path)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
@@ -23,12 +24,38 @@ public struct PreviewPane: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                     Divider()
-                    ScrollView {
-                        Text(PreviewPane.highlighted(text, pattern: model.pattern, mode: model.mode))
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
+                    // Content area: cleared immediately on selection change, then
+                    // filled once the async load finishes.
+                    if let content, loadedFor == m.id {
+                        ScrollView {
+                            Text(content)
+                                .font(.system(.body, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                        }
+                    } else {
+                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+                // .task(id:) re-runs (and cancels the prior run) whenever the
+                // selected match changes — reading the file and computing the
+                // highlight OFF the main thread so the UI never blocks.
+                .task(id: m.id) {
+                    content = nil
+                    loadedFor = nil
+                    let url = m.file
+                    let pattern = model.pattern
+                    let mode = model.mode
+                    let loaded = await Task.detached(priority: .userInitiated) { () -> AttributedString in
+                        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+                            return AttributedString("(не удалось прочитать файл)")
+                        }
+                        return PreviewPane.highlighted(text, pattern: pattern, mode: mode)
+                    }.value
+                    if !Task.isCancelled {
+                        content = loaded
+                        loadedFor = m.id
                     }
                 }
             } else {

@@ -32,4 +32,27 @@ final class ContextAssemblerTests: XCTestCase {
         let m = ContextAssembler().assemble(raw, fileLines: lines, before: 0, after: 0)
         XCTAssertTrue(m.contextBefore.isEmpty && m.contextAfter.isEmpty)
     }
+
+    // Regression: a non-UTF-8 text file (no NUL, so not treated as binary) yields
+    // an empty fileLines array from the provider. Assembling a match on line >= 2
+    // must NOT index out of bounds.
+    func test_emptyFileLinesReturnsEmptyContextsWithoutCrash() {
+        let m = ContextAssembler().assemble(raw, fileLines: [], before: 2, after: 2)
+        XCTAssertEqual(m.contextBefore, [])
+        XCTAssertEqual(m.contextAfter, [])
+        XCTAssertEqual(m.matchLine, "l3")
+        XCTAssertEqual(m.lineNumber, 3)
+        XCTAssertEqual(m.matchRange, 0..<2)
+    }
+
+    func test_lineNumberBeyondShortArrayIsSafe() {
+        let short = ["only-line"]
+        let beyond = RawMatch(file: URL(fileURLWithPath: "/f"), lineNumber: 4,
+                              matchLine: "l4", matchRange: 0..<2)
+        let m = ContextAssembler().assemble(beyond, fileLines: short, before: 2, after: 2)
+        XCTAssertEqual(m.contextBefore, [])
+        XCTAssertEqual(m.contextAfter, [])
+        XCTAssertEqual(m.matchLine, "l4")
+        XCTAssertEqual(m.lineNumber, 4)
+    }
 }

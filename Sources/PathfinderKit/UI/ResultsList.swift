@@ -53,8 +53,8 @@ public struct ResultsList: View {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }
                                 Divider()
-                                Button("Копировать путь") { copyToPasteboard(file.file.path) }
-                                Button("Копировать относительный путь") { copyToPasteboard(displayPath(file.file)) }
+                                Button("Копировать путь") { copyToPasteboard(displayPath(file.file)) }
+                                Button("Копировать полный путь") { copyToPasteboard(file.file.path) }
                                 Button("Копировать имя файла") { copyToPasteboard(file.file.lastPathComponent) }
                                 Button("Копировать папку") { copyToPasteboard(file.file.deletingLastPathComponent().path) }
                                 Button("Копировать строку") { copyToPasteboard(m.matchLine) }

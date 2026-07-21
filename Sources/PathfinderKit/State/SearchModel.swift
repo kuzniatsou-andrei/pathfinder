@@ -11,8 +11,8 @@ public final class SearchModel {
     public var excludeGlobs: [String] = []
     public var maxFileSizeBytes: Int?
     public var excludeBinary: Bool = true
-    public var contextBefore: Int = 2
-    public var contextAfter: Int = 2
+    public var contextBefore: Int = 1
+    public var contextAfter: Int = 1
     public private(set) var isSearching: Bool = false
     public var lastError: String?
     public var replacement: String = ""
@@ -20,15 +20,13 @@ public final class SearchModel {
     private let engine: SearchEngine
     private let store: ResultsStore
     private let fileLinesProvider: @Sendable (URL) -> [String]
-    private let debounceMs: Int
     private let assembler = ContextAssembler()
     private var generation = 0
 
     public init(engine: SearchEngine, store: ResultsStore,
-                fileLinesProvider: @escaping @Sendable (URL) -> [String],
-                debounceMs: Int = 200) {
+                fileLinesProvider: @escaping @Sendable (URL) -> [String]) {
         self.engine = engine; self.store = store
-        self.fileLinesProvider = fileLinesProvider; self.debounceMs = debounceMs
+        self.fileLinesProvider = fileLinesProvider
     }
 
     public var regexError: String? {

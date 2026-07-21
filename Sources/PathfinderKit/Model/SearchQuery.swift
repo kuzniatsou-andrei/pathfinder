@@ -14,7 +14,7 @@ public struct SearchQuery: Sendable {
     public init(pattern: String, mode: SearchMode, basePath: URL,
                 includeGlobs: [String] = [], excludeGlobs: [String] = [],
                 maxFileSizeBytes: Int? = nil, excludeBinary: Bool = true,
-                contextBefore: Int = 2, contextAfter: Int = 2) {
+                contextBefore: Int = 1, contextAfter: Int = 1) {
         self.pattern = pattern; self.mode = mode; self.basePath = basePath
         self.includeGlobs = includeGlobs; self.excludeGlobs = excludeGlobs
         self.maxFileSizeBytes = maxFileSizeBytes; self.excludeBinary = excludeBinary

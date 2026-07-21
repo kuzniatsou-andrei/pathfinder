@@ -4,8 +4,8 @@ import XCTest
 final class ModelTests: XCTestCase {
     func test_searchQuery_defaults() {
         let q = SearchQuery(pattern: "x", mode: .text, basePath: URL(fileURLWithPath: "/tmp"))
-        XCTAssertEqual(q.contextBefore, 2)
-        XCTAssertEqual(q.contextAfter, 2)
+        XCTAssertEqual(q.contextBefore, 1)
+        XCTAssertEqual(q.contextAfter, 1)
         XCTAssertTrue(q.excludeBinary)
     }
 

@@ -20,6 +20,12 @@ public struct SearchMatch: Equatable, Sendable {
     }
 }
 
+extension SearchMatch: Identifiable {
+    /// Globally-unique, stable row identity (file + line + match range) so
+    /// SwiftUI never reuses one match's row view for another's content.
+    public var id: String { "\(file.path):\(lineNumber):\(matchRange.lowerBound)-\(matchRange.upperBound)" }
+}
+
 public struct FileResult: Equatable, Sendable {
     public let file: URL
     public let matches: [SearchMatch]

@@ -99,7 +99,12 @@ To publish it:
 4. Users then install with:
 
        brew tap kuzniatsou-andrei/tap
+       brew trust kuzniatsou-andrei/tap
        brew install --cask pathfinder
+
+   The `brew trust` step is required on Homebrew ≥ 4.7 for third-party
+   (non-homebrew-core) casks; without it `brew install --cask` refuses with
+   *"Refusing to load cask … from untrusted tap"*.
 
 The build is **ad-hoc signed, not notarized**; the cask strips the quarantine
 flag on install so Gatekeeper allows it. For a smoother, warning-free install,

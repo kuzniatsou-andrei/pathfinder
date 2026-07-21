@@ -3,6 +3,7 @@
 # Ship this file from a tap repo named `homebrew-<something>` (e.g.
 # github.com/kuzniatsou-andrei/homebrew-tap), at Casks/pathfinder.rb. Then:
 #     brew tap kuzniatsou-andrei/tap
+#     brew trust kuzniatsou-andrei/tap        # required on Homebrew >= 4.7
 #     brew install --cask pathfinder
 #
 # Fill `version`/`sha256` from `scripts/make-release.sh`, and point `url` at the

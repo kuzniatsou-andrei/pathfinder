@@ -48,7 +48,10 @@ public struct ResultsList: View {
                     ForEach(Array(file.matches.enumerated()), id: \.offset) { _, m in
                         MatchRow(match: m)
                             .contentShape(Rectangle())
-                            .onTapGesture { store.selectedMatch = m }
+                            // simultaneousGesture (not onTapGesture) so a click
+                            // still selects the row for preview while click-drag
+                            // is free to select text.
+                            .simultaneousGesture(TapGesture().onEnded { store.selectedMatch = m })
                             .contextMenu {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }
@@ -69,6 +72,7 @@ public struct ResultsList: View {
                 }
             }
         }
+        .textSelection(.enabled)
     }
 }
 

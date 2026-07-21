@@ -17,11 +17,15 @@ search-and-replace with undo; reveal in Finder.
 - **Clear** button — resets the query and results.
 
 **Filters**
-- Include / exclude **glob patterns**: `*` = any number of chars, `!` = exactly
-  one char. A pattern matches the filename, **any folder component**, or the
-  full path relative to the search folder — so `build` excludes everything
-  under any `build/` directory.
-- Multiple patterns separated by **comma or `|`** (e.g. `build, target | *.iml`).
+- Include / exclude **gitignore-style glob patterns**:
+  - `*` matches within a path segment; `**` crosses directories; `?` = one char.
+  - Leading `/` anchors to the search root; a trailing `/` targets a directory.
+  - A pattern with no `/` matches by **basename at any depth** — so `build`
+    excludes everything under any `build/` directory, while `feature-*`
+    excludes `feature-107/…` but **not** `feature/…`.
+  - `!pattern` **re-includes** (negation), evaluated in order.
+- Multiple patterns are separated by **`|`** or newlines
+  (e.g. `build/ | **/target | feature-* | !keep/`).
 - Exclude binary files; max file-size limit.
 - **Context lines** ±N (default 1), adjustable.
 
@@ -29,14 +33,20 @@ search-and-replace with undo; reveal in Finder.
 - Grouped by file, showing the path **relative to the search folder** (so
   same-named files in different directories are distinguishable) and a match
   count.
-- The matched substring is **highlighted yellow**; the whole-file preview
-  highlights **every** occurrence and its text is selectable for copy.
+- Single-click selects a result (native highlight) and shows it in the preview;
+  switching results **clears the previous preview instantly** and loads the new
+  file + highlight **off the main thread** (no UI stall).
+- The matched substring is **highlighted yellow**; the preview shows the file
+  path in a selectable header and highlights **every** occurrence, with
+  selectable text for copy.
 - **Display cap**: the first 100 matches are shown; the rest are counted in the
   background (status bar notes "показаны первые 100").
 - Result context menu: reveal in Finder, open in external editor, copy
-  full / relative path / filename / containing folder, copy the matched line
-  or the whole block (with context), **exclude this file / this folder**, and
-  delete (to Trash).
+  relative path / full path / filename / containing folder, copy the matched
+  line or the whole block (with context), **exclude this file / this folder**,
+  and delete (to Trash).
+- **Resizable 50/50 split** between results and preview — drag the divider; the
+  position is remembered across launches.
 
 **Editing**
 - **Search-and-replace** (text/regex; disabled in fuzzy mode) with **undo**;

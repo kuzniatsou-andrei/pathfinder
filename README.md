@@ -128,4 +128,16 @@ isn't writable without sudo) and pins it to the Dock. After that, launch
 
     swift test
 
-Search engine: [fff](https://github.com/dmtrKovalenko/fff) (MIT) via a C shim.
+## Licensing / third-party
+
+Search engine: [fff](https://github.com/dmtrKovalenko/fff) — **MIT**,
+© 2025 Dmitriy Kovalenko — reached via a C shim.
+
+Pathfinder embeds the compiled `libfff_c.dylib`. MIT permits this
+(redistribution, including commercially) provided fff's copyright and license
+notice ship with the binary — `make-app.sh` copies fff's `LICENSE` into the
+bundle at `Contents/Resources/fff-LICENSE.txt`. `fff` itself statically links
+Rust crates (ripgrep, regex, …), predominantly MIT/Apache-2.0/Unlicense; for
+strict, exhaustive third-party attribution you can additionally bundle their
+notices (e.g. via `cargo about` / `cargo bundle-licenses`) — not required for
+the fff MIT obligation itself.

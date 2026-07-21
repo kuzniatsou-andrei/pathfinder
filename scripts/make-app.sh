@@ -30,6 +30,10 @@ mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 cp "$BIN_DIR/PathfinderApp" "$CONTENTS/MacOS/Pathfinder"
 cp "$ROOT/Sources/PathfinderApp/Info.plist" "$CONTENTS/Info.plist"
 
+# Bundle the fff license (MIT requires the notice to ship with the binary,
+# since we embed the compiled libfff_c.dylib).
+[[ -f "$ROOT/Vendor/fff/LICENSE" ]] && cp "$ROOT/Vendor/fff/LICENSE" "$CONTENTS/Resources/fff-LICENSE.txt"
+
 # --- Make the bundle self-contained (relocatable) ---------------------------
 # The binary links libfff_c.dylib by an absolute path into Vendor/. Embed the
 # dylib in Contents/Frameworks and rewrite the load command to @rpath so the

@@ -10,6 +10,12 @@ final class FileFilterTests: XCTestCase {
     }
     let kt = URL(fileURLWithPath: "/repo/src/App.kt")
 
+    func url(_ relativePath: String) -> URL {
+        URL(fileURLWithPath: "/repo/" + relativePath)
+    }
+
+    // MARK: - Baseline behaviors preserved
+
     func test_includeMatches() {
         XCTAssertTrue(FileFilter(query: q(include: ["*.kt"])).accepts(kt, sizeBytes: 10, isBinary: false))
         XCTAssertFalse(FileFilter(query: q(include: ["*.json"])).accepts(kt, sizeBytes: 10, isBinary: false))
@@ -29,35 +35,82 @@ final class FileFilterTests: XCTestCase {
         XCTAssertTrue(FileFilter(query: q()).accepts(kt, sizeBytes: 10, isBinary: false))
     }
 
-    func test_excludeDirectoryByBareName() {
-        let filter = FileFilter(query: q(exclude: ["build"]))
-        XCTAssertFalse(filter.accepts(URL(fileURLWithPath: "/repo/build/gen/X.java"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/src/App.kt"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/mybuild/Y.java"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/buildfile.txt"), sizeBytes: 10, isBinary: false))
-    }
+    // MARK: - Basename patterns (no `/`, no leading `/`) match at any depth
 
-    func test_excludeByExtensionAnyDepth() {
+    func test_basenameExtensionAnyDepth() {
         let filter = FileFilter(query: q(exclude: ["*.iml"]))
-        XCTAssertFalse(filter.accepts(URL(fileURLWithPath: "/repo/a/b/foo.iml"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/a/foo.txt"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a/b/foo.iml"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("a/foo.txt"), sizeBytes: 10, isBinary: false))
     }
 
-    func test_singleCharWildcardBang() {
-        let filter = FileFilter(query: q(exclude: ["te!t.txt"]))
-        XCTAssertFalse(filter.accepts(URL(fileURLWithPath: "/repo/x/test.txt"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/x/teest.txt"), sizeBytes: 10, isBinary: false))
+    func test_basenameWildcardMatchesWholeComponentOnly() {
+        // Critical regression: `feature-*` must exclude the TR folders but
+        // must NOT match a component that is merely a prefix match substring,
+        // i.e. it should not exclude `feature/...` (component is "feature", not "feature-*").
+        let filter = FileFilter(query: q(exclude: ["feature-*"]))
+        XCTAssertFalse(filter.accepts(url("feature-107/x.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("feature-511/y.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("feature/z.java"), sizeBytes: 10, isBinary: false))
     }
 
-    func test_questionMarkIsLiteralNow() {
+    func test_basenameDirectoryExcludesContents() {
+        let filter = FileFilter(query: q(exclude: ["build"]))
+        XCTAssertFalse(filter.accepts(url("build/x"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a/build/y"), sizeBytes: 10, isBinary: false))
+    }
+
+    func test_basenameDirectoryWithTrailingSlashExcludesContents() {
+        let filter = FileFilter(query: q(exclude: ["build/"]))
+        XCTAssertFalse(filter.accepts(url("build/x"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a/build/y"), sizeBytes: 10, isBinary: false))
+    }
+
+    // MARK: - Anchored patterns (leading `/`) only match at the root
+
+    func test_anchoredDirectoryOnlyMatchesAtRoot() {
+        let filter = FileFilter(query: q(exclude: ["/build"]))
+        XCTAssertFalse(filter.accepts(url("build/x"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("a/build/y"), sizeBytes: 10, isBinary: false))
+    }
+
+    // MARK: - `**` crosses `/`
+
+    func test_doubleStarCrossesSlash() {
+        let filter = FileFilter(query: q(exclude: ["**/target"]))
+        XCTAssertFalse(filter.accepts(url("target/x"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a/b/target/y"), sizeBytes: 10, isBinary: false))
+    }
+
+    // MARK: - `*` does not cross `/`
+
+    func test_singleStarDoesNotCrossSlash() {
+        let filter = FileFilter(query: q(exclude: ["src/*.kt"]))
+        XCTAssertFalse(filter.accepts(url("src/A.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("src/deep/A.kt"), sizeBytes: 10, isBinary: false))
+    }
+
+    // MARK: - `?` matches exactly one non-slash character
+
+    func test_questionMarkMatchesSingleChar() {
         let filter = FileFilter(query: q(exclude: ["a?.txt"]))
-        XCTAssertFalse(filter.accepts(URL(fileURLWithPath: "/repo/a?.txt"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/ab.txt"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a1.txt"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("abc.txt"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("a.txt"), sizeBytes: 10, isBinary: false))
     }
 
-    func test_includeByDirectory() {
-        let filter = FileFilter(query: q(include: ["src"]))
-        XCTAssertTrue(filter.accepts(URL(fileURLWithPath: "/repo/src/App.kt"), sizeBytes: 10, isBinary: false))
-        XCTAssertFalse(filter.accepts(URL(fileURLWithPath: "/repo/test/App.kt"), sizeBytes: 10, isBinary: false))
+    // MARK: - Negation ordering (gitignore semantics)
+
+    func test_negationReIncludesLaterMatch() {
+        let filter = FileFilter(query: q(exclude: ["build", "!build/keep.txt"]))
+        XCTAssertFalse(filter.accepts(url("build/x"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("build/keep.txt"), sizeBytes: 10, isBinary: false))
+    }
+
+    // MARK: - Include whitelist
+
+    func test_includeWhitelistFiltersByExtension() {
+        let filter = FileFilter(query: q(include: ["*.kt"]))
+        XCTAssertTrue(filter.accepts(url("a/x.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("a/y.java"), sizeBytes: 10, isBinary: false))
     }
 }

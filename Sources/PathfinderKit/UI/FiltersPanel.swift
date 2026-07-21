@@ -13,7 +13,7 @@ public struct FiltersPanel: View {
                 HStack {
                     TextField("include *.kt, *.json", text: $includeText)
                         .onChange(of: includeText) { _, v in model.includeGlobs = splitGlobs(v) }
-                    TextField("exclude build, target, *.iml", text: $excludeText)
+                    TextField("exclude build, target | *.iml", text: $excludeText)
                         .onChange(of: excludeText) { _, v in model.excludeGlobs = splitGlobs(v) }
                 }
                 Toggle("Исключить бинарные", isOn: $model.excludeBinary)
@@ -25,7 +25,10 @@ public struct FiltersPanel: View {
         }.padding(.horizontal, 8)
     }
 
+    // Patterns are separated by comma or `|` (e.g. "build, target" or "build|target").
     private func splitGlobs(_ s: String) -> [String] {
-        s.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        s.split(whereSeparator: { $0 == "," || $0 == "|" })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
     }
 }

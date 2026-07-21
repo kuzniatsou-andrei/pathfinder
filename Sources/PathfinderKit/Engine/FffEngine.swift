@@ -8,37 +8,45 @@ public struct FffEngine: SearchEngine {
 
     public func grep(_ query: SearchQuery) -> AsyncThrowingStream<RawMatch, Error> {
         AsyncThrowingStream { continuation in
-            let modeCode: Int32 = switch query.mode {
-                case .text: 0
-                case .regex: 1
-                case .fuzzy: 2
-            }
-            var out = ShimMatches()
-            let rc = query.basePath.path.withCString { base in
-                query.pattern.withCString { pat in
-                    shim_grep(base, pat, modeCode, &out)
+            // Run the blocking native `shim_grep` work OFF the main actor. The
+            // caller (`SearchModel`) is `@MainActor` and awaits this stream, so
+            // doing the C call synchronously here would freeze the UI. `query`
+            // is a Sendable value type, so capturing it in a detached task is safe.
+            let task = Task.detached {
+                let modeCode: Int32 = switch query.mode {
+                    case .text: 0
+                    case .regex: 1
+                    case .fuzzy: 2
                 }
-            }
-            guard rc == 0 else {
-                continuation.finish(throwing: EngineError.searchFailed(code: Int(rc)))
-                return
-            }
-            defer { shim_free(&out) }
+                var out = ShimMatches()
+                let rc = query.basePath.path.withCString { base in
+                    query.pattern.withCString { pat in
+                        shim_grep(base, pat, modeCode, &out)
+                    }
+                }
+                guard rc == 0 else {
+                    continuation.finish(throwing: EngineError.searchFailed(code: Int(rc)))
+                    return
+                }
+                defer { shim_free(&out) }
 
-            let filter = FileFilter(query: query)
-            for i in 0..<out.count {
-                let m = out.items[i]
-                let url = URL(fileURLWithPath: String(cString: m.file))
-                let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? nil ?? 0
-                let isBinary = FffEngine.looksBinary(url)
-                guard filter.accepts(url, sizeBytes: size, isBinary: isBinary) else { continue }
-                continuation.yield(RawMatch(
-                    file: url,
-                    lineNumber: Int(m.line),
-                    matchLine: String(cString: m.text),
-                    matchRange: Int(m.col_start)..<Int(m.col_end)))
+                let filter = FileFilter(query: query)
+                for i in 0..<out.count {
+                    if Task.isCancelled { continuation.finish(); return }
+                    let m = out.items[i]
+                    let url = URL(fileURLWithPath: String(cString: m.file))
+                    let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? nil ?? 0
+                    let isBinary = FffEngine.looksBinary(url)
+                    guard filter.accepts(url, sizeBytes: size, isBinary: isBinary) else { continue }
+                    continuation.yield(RawMatch(
+                        file: url,
+                        lineNumber: Int(m.line),
+                        matchLine: String(cString: m.text),
+                        matchRange: Int(m.col_start)..<Int(m.col_end)))
+                }
+                continuation.finish()
             }
-            continuation.finish()
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

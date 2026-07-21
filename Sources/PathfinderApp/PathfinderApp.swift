@@ -4,6 +4,7 @@ import PathfinderKit
 @main
 struct PathfinderApp: App {
     var body: some Scene {
-        WindowGroup { Text("Pathfinder") }
+        WindowGroup { RootView() }
+            .defaultSize(width: 1100, height: 720)
     }
 }

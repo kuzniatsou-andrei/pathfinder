@@ -7,9 +7,11 @@ public struct RootView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var canUndo: Bool = false
     @State private var searchInResults = false
+    @State private var historyItems: [String] = SearchHistory().items()
     private let ops = FileOps()
     private let replaceEngine = ReplaceEngine()
     private let folderMemory = FolderMemory()
+    private let searchHistory = SearchHistory()
 
     public init() {
         let store = ResultsStore()
@@ -31,7 +33,9 @@ public struct RootView: View {
                       onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo,
                       onSearchToggle: toggleSearch, onClear: clearSearch,
                       searchInResults: $searchInResults,
-                      canSearchInResults: !store.files.isEmpty)
+                      canSearchInResults: !store.files.isEmpty,
+                      history: historyItems, onDeleteHistory: deleteHistoryItem,
+                      onClearHistory: clearHistory)
             FiltersPanel(model: model)
             Divider()
             HSplitView {
@@ -55,6 +59,8 @@ public struct RootView: View {
             // No folder yet: guide the user through picking one, then search.
             if model.basePath == nil { pickFolder() }
             guard model.basePath != nil else { return }  // picker cancelled
+            searchHistory.add(model.pattern)
+            historyItems = searchHistory.items()
             // Snapshot the current result files BEFORE runNow resets the store.
             model.restrictToFiles = searchInResults ? Set(store.files.map { $0.file.path }) : nil
             searchTask?.cancel()
@@ -70,6 +76,16 @@ public struct RootView: View {
         store.reset()
         searchInResults = false
         model.restrictToFiles = nil
+    }
+
+    private func deleteHistoryItem(_ s: String) {
+        searchHistory.remove(s)
+        historyItems = searchHistory.items()
+    }
+
+    private func clearHistory() {
+        searchHistory.clear()
+        historyItems = []
     }
 
     private func pickFolder() {

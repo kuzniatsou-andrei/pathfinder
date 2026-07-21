@@ -10,16 +10,24 @@ public struct SearchBar: View {
     var onClear: () -> Void
     @Binding var searchInResults: Bool
     var canSearchInResults: Bool
+    var history: [String]
+    var onDeleteHistory: (String) -> Void
+    var onClearHistory: () -> Void
+    @State private var showHistory = false
 
     public init(model: SearchModel, canUndo: Bool,
                 onFolderPick: @escaping () -> Void, onReplace: @escaping () -> Void,
                 onUndo: @escaping () -> Void, onSearchToggle: @escaping () -> Void,
                 onClear: @escaping () -> Void, searchInResults: Binding<Bool>,
-                canSearchInResults: Bool) {
+                canSearchInResults: Bool, history: [String],
+                onDeleteHistory: @escaping (String) -> Void,
+                onClearHistory: @escaping () -> Void) {
         self._model = Bindable(model); self.canUndo = canUndo
         self.onFolderPick = onFolderPick; self.onReplace = onReplace; self.onUndo = onUndo
         self.onSearchToggle = onSearchToggle; self.onClear = onClear
         self._searchInResults = searchInResults; self.canSearchInResults = canSearchInResults
+        self.history = history; self.onDeleteHistory = onDeleteHistory
+        self.onClearHistory = onClearHistory
     }
 
     // Enabled when there is a query to run; a missing folder is handled by
@@ -49,6 +57,39 @@ public struct SearchBar: View {
                         if !model.isSearching && runnable { onSearchToggle() }
                     }
                 if model.isSearching { ProgressView().scaleEffect(0.5) }
+                Button { showHistory = true } label: {
+                    Label("История", systemImage: "clock")
+                }
+                .disabled(history.isEmpty)
+                .popover(isPresented: $showHistory) {
+                    VStack(spacing: 0) {
+                        List(history, id: \.self) { item in
+                            HStack {
+                                Button {
+                                    model.pattern = item
+                                    showHistory = false
+                                } label: {
+                                    Text(item)
+                                }
+                                .buttonStyle(.plain)
+                                Spacer()
+                                Button {
+                                    onDeleteHistory(item)
+                                } label: {
+                                    Image(systemName: "xmark")
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                        Divider()
+                        Button("Очистить историю", role: .destructive) {
+                            onClearHistory()
+                            showHistory = false
+                        }
+                        .padding(8)
+                    }
+                    .frame(width: 320, height: 300)
+                }
                 Button { onSearchToggle() } label: {
                     if model.isSearching {
                         Label("Остановить", systemImage: "stop.fill")

@@ -14,6 +14,19 @@ public struct ResultsList: View {
         self.onReveal = onReveal; self.onOpen = onOpen; self.onDelete = onDelete
     }
 
+    private func copyToPasteboard(_ s: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(s, forType: .string)
+    }
+
+    /// The match line plus its context, with line numbers, for "copy block".
+    private func blockText(_ m: SearchMatch) -> String {
+        var lines = m.contextBefore.map { "\($0.number)\t\($0.text)" }
+        lines.append("\(m.lineNumber)\t\(m.matchLine)")
+        lines += m.contextAfter.map { "\($0.number)\t\($0.text)" }
+        return lines.joined(separator: "\n")
+    }
+
     /// Path shown in a section header: relative to the searched folder so that
     /// same-named files in different directories are distinguishable.
     private func displayPath(_ file: URL) -> String {
@@ -34,10 +47,9 @@ public struct ResultsList: View {
                             .contextMenu {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }
-                                Button("Копировать путь") {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(file.file.path, forType: .string)
-                                }
+                                Button("Копировать путь") { copyToPasteboard(file.file.path) }
+                                Button("Копировать строку") { copyToPasteboard(m.matchLine) }
+                                Button("Копировать блок") { copyToPasteboard(blockText(m)) }
                                 Divider()
                                 Button("Удалить", role: .destructive) { onDelete(file.file) }
                             }

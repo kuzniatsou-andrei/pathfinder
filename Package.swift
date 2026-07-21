@@ -24,7 +24,7 @@ let package = Package(
         .executableTarget(
             name: "PathfinderApp",
             dependencies: ["PathfinderKit"],
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist", "Resources"]
         ),
         .target(
             name: "CFffShim",

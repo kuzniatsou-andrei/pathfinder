@@ -6,3 +6,4 @@ Pathfinder.app/
 .build/
 dist/
 .swiftpm/xcode/xcuserdata/
+.claude/

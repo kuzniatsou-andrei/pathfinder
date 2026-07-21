@@ -2,11 +2,16 @@ import SwiftUI
 
 public struct SearchBar: View {
     @Bindable var model: SearchModel
+    var canUndo: Bool
     var onFolderPick: () -> Void
     var onReplace: () -> Void
+    var onUndo: () -> Void
 
-    public init(model: SearchModel, onFolderPick: @escaping () -> Void, onReplace: @escaping () -> Void) {
-        self._model = Bindable(model); self.onFolderPick = onFolderPick; self.onReplace = onReplace
+    public init(model: SearchModel, canUndo: Bool,
+                onFolderPick: @escaping () -> Void, onReplace: @escaping () -> Void,
+                onUndo: @escaping () -> Void) {
+        self._model = Bindable(model); self.canUndo = canUndo
+        self.onFolderPick = onFolderPick; self.onReplace = onReplace; self.onUndo = onUndo
     }
 
     public var body: some View {
@@ -34,6 +39,9 @@ public struct SearchBar: View {
                 TextField("Заменить", text: $model.replacement)
                     .textFieldStyle(.roundedBorder)
                 Button("Replace") { onReplace() }
+                    .disabled(model.mode == .fuzzy)
+                Button("Undo") { onUndo() }
+                    .disabled(!canUndo)
             }
         }.padding(8)
     }

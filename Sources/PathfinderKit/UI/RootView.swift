@@ -5,6 +5,7 @@ public struct RootView: View {
     @State private var model: SearchModel
     @State private var store: ResultsStore
     @State private var searchTask: Task<Void, Never>?
+    @State private var canUndo: Bool = false
     private let ops = FileOps()
     private let replaceEngine = ReplaceEngine()
 
@@ -21,13 +22,15 @@ public struct RootView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            SearchBar(model: model, onFolderPick: pickFolder, onReplace: runReplace)
+            SearchBar(model: model, canUndo: canUndo,
+                      onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo)
             FiltersPanel(model: model)
             Divider()
             HSplitView {
                 ResultsList(store: store,
                             onReveal: { ops.revealInFinder($0) },
-                            onOpen: { ops.open($0, withEditor: nil) })
+                            onOpen: { ops.open($0, withEditor: nil) },
+                            onDelete: runDelete)
                     .frame(minWidth: 320)
                 PreviewPane(store: store).frame(minWidth: 360)
             }
@@ -36,6 +39,12 @@ public struct RootView: View {
         }
         .onChange(of: model.pattern) { _, _ in scheduleSearch() }
         .onChange(of: model.mode) { _, _ in scheduleSearch() }
+        .onChange(of: model.includeGlobs) { _, _ in scheduleSearch() }
+        .onChange(of: model.excludeGlobs) { _, _ in scheduleSearch() }
+        .onChange(of: model.excludeBinary) { _, _ in scheduleSearch() }
+        .onChange(of: model.maxFileSizeBytes) { _, _ in scheduleSearch() }
+        .onChange(of: model.contextBefore) { _, _ in scheduleSearch() }
+        .onChange(of: model.contextAfter) { _, _ in scheduleSearch() }
     }
 
     private func scheduleSearch() {
@@ -56,9 +65,41 @@ public struct RootView: View {
     }
 
     private func runReplace() {
+        guard model.mode != .fuzzy else {
+            model.lastError = "Замена недоступна в Fuzzy-режиме"
+            return
+        }
         let files = store.files.map { $0.file }
-        _ = try? replaceEngine.replace(in: files, pattern: model.pattern,
-                                       replacement: model.replacement, mode: model.mode)
+        let message: String
+        do {
+            let report = try replaceEngine.replace(in: files, pattern: model.pattern,
+                                                   replacement: model.replacement, mode: model.mode)
+            message = "Заменено в \(report.changedFiles.count) файлах, пропущено \(report.skipped.count)"
+        } catch {
+            message = String(describing: error)
+        }
+        canUndo = replaceEngine.canUndo
+        // `runNow()` clears lastError on entry, so surface the summary AFTER it
+        // finishes, otherwise the message would be wiped by the refresh search.
+        Task { await model.runNow(); model.lastError = message }
+    }
+
+    private func runUndo() {
+        try? replaceEngine.undo()
+        canUndo = replaceEngine.canUndo
         Task { await model.runNow() }
+    }
+
+    private func runDelete(_ url: URL) {
+        let failure: String?
+        do {
+            try ops.delete(url); failure = nil
+        } catch {
+            failure = String(describing: error)
+        }
+        Task {
+            await model.runNow()
+            if let failure { model.lastError = failure }
+        }
     }
 }

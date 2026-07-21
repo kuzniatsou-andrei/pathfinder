@@ -1,12 +1,15 @@
 import SwiftUI
+import AppKit
 
 public struct ResultsList: View {
     let store: ResultsStore
     var onReveal: (URL) -> Void
     var onOpen: (URL) -> Void
+    var onDelete: (URL) -> Void
 
-    public init(store: ResultsStore, onReveal: @escaping (URL) -> Void, onOpen: @escaping (URL) -> Void) {
-        self.store = store; self.onReveal = onReveal; self.onOpen = onOpen
+    public init(store: ResultsStore, onReveal: @escaping (URL) -> Void,
+                onOpen: @escaping (URL) -> Void, onDelete: @escaping (URL) -> Void) {
+        self.store = store; self.onReveal = onReveal; self.onOpen = onOpen; self.onDelete = onDelete
     }
 
     public var body: some View {
@@ -20,6 +23,12 @@ public struct ResultsList: View {
                             .contextMenu {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }
+                                Button("Копировать путь") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(file.file.path, forType: .string)
+                                }
+                                Divider()
+                                Button("Удалить", role: .destructive) { onDelete(file.file) }
                             }
                     }
                 }

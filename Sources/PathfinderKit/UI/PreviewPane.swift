@@ -12,12 +12,24 @@ public struct PreviewPane: View {
         Group {
             if let m = store.selectedMatch,
                let text = try? String(contentsOf: m.file, encoding: .utf8) {
-                ScrollView {
-                    Text(PreviewPane.highlighted(text, pattern: model.pattern, mode: model.mode))
-                        .font(.system(.body, design: .monospaced))
+                VStack(alignment: .leading, spacing: 0) {
+                    // File path header — selectable so it can be read/copied.
+                    Text(m.file.path)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                    Divider()
+                    ScrollView {
+                        Text(PreviewPane.highlighted(text, pattern: model.pattern, mode: model.mode))
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                    }
                 }
             } else {
                 Text("Выбери результат для предпросмотра").foregroundStyle(.secondary)

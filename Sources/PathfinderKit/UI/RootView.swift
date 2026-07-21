@@ -23,7 +23,8 @@ public struct RootView: View {
     public var body: some View {
         VStack(spacing: 0) {
             SearchBar(model: model, canUndo: canUndo,
-                      onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo)
+                      onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo,
+                      onSearchToggle: toggleSearch)
             FiltersPanel(model: model)
             Divider()
             HSplitView {
@@ -37,22 +38,15 @@ public struct RootView: View {
             Divider()
             StatusBar(store: store, model: model)
         }
-        .onChange(of: model.pattern) { _, _ in scheduleSearch() }
-        .onChange(of: model.mode) { _, _ in scheduleSearch() }
-        .onChange(of: model.includeGlobs) { _, _ in scheduleSearch() }
-        .onChange(of: model.excludeGlobs) { _, _ in scheduleSearch() }
-        .onChange(of: model.excludeBinary) { _, _ in scheduleSearch() }
-        .onChange(of: model.maxFileSizeBytes) { _, _ in scheduleSearch() }
-        .onChange(of: model.contextBefore) { _, _ in scheduleSearch() }
-        .onChange(of: model.contextAfter) { _, _ in scheduleSearch() }
     }
 
-    private func scheduleSearch() {
-        searchTask?.cancel()
-        searchTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
-            if Task.isCancelled { return }
-            await model.runNow()
+    private func toggleSearch() {
+        if model.isSearching {
+            searchTask?.cancel()
+            searchTask = nil
+        } else {
+            searchTask?.cancel()
+            searchTask = Task { await model.runNow() }
         }
     }
 
@@ -60,7 +54,7 @@ public struct RootView: View {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true; panel.canChooseFiles = false
         if panel.runModal() == .OK, let url = panel.url {
-            model.basePath = url; scheduleSearch()
+            model.basePath = url
         }
     }
 

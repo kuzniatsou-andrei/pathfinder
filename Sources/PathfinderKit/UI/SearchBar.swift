@@ -6,12 +6,19 @@ public struct SearchBar: View {
     var onFolderPick: () -> Void
     var onReplace: () -> Void
     var onUndo: () -> Void
+    var onSearchToggle: () -> Void
 
     public init(model: SearchModel, canUndo: Bool,
                 onFolderPick: @escaping () -> Void, onReplace: @escaping () -> Void,
-                onUndo: @escaping () -> Void) {
+                onUndo: @escaping () -> Void, onSearchToggle: @escaping () -> Void) {
         self._model = Bindable(model); self.canUndo = canUndo
         self.onFolderPick = onFolderPick; self.onReplace = onReplace; self.onUndo = onUndo
+        self.onSearchToggle = onSearchToggle
+    }
+
+    private var runnable: Bool {
+        !model.pattern.isEmpty && model.basePath != nil
+            && !(model.mode == .regex && model.regexError != nil)
     }
 
     public var body: some View {
@@ -30,7 +37,18 @@ public struct SearchBar: View {
             HStack {
                 TextField("Найти", text: $model.pattern)
                     .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        if !model.isSearching && runnable { onSearchToggle() }
+                    }
                 if model.isSearching { ProgressView().scaleEffect(0.5) }
+                Button { onSearchToggle() } label: {
+                    if model.isSearching {
+                        Label("Остановить", systemImage: "stop.fill")
+                    } else {
+                        Label("Начать поиск", systemImage: "magnifyingglass")
+                    }
+                }
+                .disabled(!model.isSearching && !runnable)
             }
             if let re = model.regexError {
                 HStack { Text(re).foregroundStyle(.red).font(.caption); Spacer() }

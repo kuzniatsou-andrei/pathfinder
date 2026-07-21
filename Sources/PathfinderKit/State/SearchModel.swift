@@ -1,0 +1,58 @@
+import Foundation
+import Observation
+
+@Observable
+public final class SearchModel {
+    public var pattern: String = ""
+    public var mode: SearchMode = .text
+    public var basePath: URL?
+    public var includeGlobs: [String] = []
+    public var excludeGlobs: [String] = []
+    public var maxFileSizeBytes: Int?
+    public var excludeBinary: Bool = true
+    public var contextBefore: Int = 2
+    public var contextAfter: Int = 2
+    public private(set) var isSearching: Bool = false
+    public var lastError: String?
+
+    private let engine: SearchEngine
+    private let store: ResultsStore
+    private let fileLinesProvider: @Sendable (URL) -> [String]
+    private let debounceMs: Int
+    private let assembler = ContextAssembler()
+
+    public init(engine: SearchEngine, store: ResultsStore,
+                fileLinesProvider: @escaping @Sendable (URL) -> [String],
+                debounceMs: Int = 200) {
+        self.engine = engine; self.store = store
+        self.fileLinesProvider = fileLinesProvider; self.debounceMs = debounceMs
+    }
+
+    /// Build a query from current state, or nil if not runnable.
+    private func makeQuery() -> SearchQuery? {
+        guard !pattern.isEmpty, let base = basePath else { return nil }
+        return SearchQuery(pattern: pattern, mode: mode, basePath: base,
+                           includeGlobs: includeGlobs, excludeGlobs: excludeGlobs,
+                           maxFileSizeBytes: maxFileSizeBytes, excludeBinary: excludeBinary,
+                           contextBefore: contextBefore, contextAfter: contextAfter)
+    }
+
+    public func runNow() async {
+        guard let query = makeQuery() else { store.reset(); return }
+        isSearching = true; lastError = nil; store.reset()
+        defer { isSearching = false }
+        do {
+            for try await raw in engine.grep(query) {
+                if Task.isCancelled { return }
+                let lines = fileLinesProvider(raw.file)
+                let match = assembler.assemble(raw, fileLines: lines,
+                                               before: query.contextBefore, after: query.contextAfter)
+                store.add(match)
+            }
+        } catch is CancellationError {
+            // superseded by a newer search; leave partial results
+        } catch {
+            lastError = String(describing: error)
+        }
+    }
+}

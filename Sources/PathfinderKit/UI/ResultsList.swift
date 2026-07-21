@@ -41,18 +41,27 @@ public struct ResultsList: View {
         return file.lastPathComponent
     }
 
+    /// Native single-selection bound to the store's selected match (by id).
+    /// A click reliably selects the row (native highlight) and switches the
+    /// preview, replacing whatever was shown before.
+    private var selection: Binding<String?> {
+        Binding(
+            get: { store.selectedMatch?.id },
+            set: { id in
+                store.selectedMatch = id.flatMap { key in
+                    store.files.lazy.flatMap(\.matches).first { $0.id == key }
+                }
+            }
+        )
+    }
+
     public var body: some View {
-        List {
+        List(selection: selection) {
             ForEach(store.files, id: \.file) { file in
                 Section(header: Text("\(displayPath(file.file)) (\(file.matches.count))").bold()) {
                     ForEach(file.matches) { m in
                         MatchRow(match: m)
-                            .padding(.vertical, 2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(store.selectedMatch?.id == m.id
-                                        ? Color.accentColor.opacity(0.20) : Color.clear)
-                            .contentShape(Rectangle())
-                            .onTapGesture { store.selectedMatch = m }
+                            .tag(m.id)
                             .contextMenu {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }

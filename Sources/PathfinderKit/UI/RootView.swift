@@ -45,6 +45,9 @@ public struct RootView: View {
             searchTask?.cancel()
             searchTask = nil
         } else {
+            // No folder yet: guide the user through picking one, then search.
+            if model.basePath == nil { pickFolder() }
+            guard model.basePath != nil else { return }  // picker cancelled
             searchTask?.cancel()
             searchTask = Task { await model.runNow() }
         }

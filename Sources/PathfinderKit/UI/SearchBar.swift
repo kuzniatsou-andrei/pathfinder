@@ -16,9 +16,11 @@ public struct SearchBar: View {
         self.onSearchToggle = onSearchToggle
     }
 
+    // Enabled when there is a query to run; a missing folder is handled by
+    // toggleSearch (it opens the folder picker first), so it must not gate the
+    // button — otherwise the button looks dead with no explanation.
     private var runnable: Bool {
-        !model.pattern.isEmpty && model.basePath != nil
-            && !(model.mode == .regex && model.regexError != nil)
+        !model.pattern.isEmpty && !(model.mode == .regex && model.regexError != nil)
     }
 
     public var body: some View {

@@ -55,10 +55,16 @@ public final class SearchModel {
         do {
             for try await raw in engine.grep(query) {
                 if Task.isCancelled { return }
-                let lines = fileLinesProvider(raw.file)
-                let match = assembler.assemble(raw, fileLines: lines,
-                                               before: query.contextBefore, after: query.contextAfter)
-                if gen == generation { store.add(match) }
+                if gen == generation {
+                    if store.canDisplayMore {
+                        let lines = fileLinesProvider(raw.file)
+                        let match = assembler.assemble(raw, fileLines: lines,
+                                                       before: query.contextBefore, after: query.contextAfter)
+                        store.add(match)
+                    } else {
+                        store.countOverflow()
+                    }
+                }
             }
         } catch is CancellationError {
             // superseded by a newer search; leave partial results

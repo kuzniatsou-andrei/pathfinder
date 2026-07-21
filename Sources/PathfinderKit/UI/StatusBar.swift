@@ -9,6 +9,8 @@ public struct StatusBar: View {
         HStack {
             if let err = model.lastError {
                 Text(err).foregroundStyle(.red)
+            } else if store.overflowCount > 0 {
+                Text("\(store.fileCount) файлов · \(store.totalMatches) совпадений (показаны первые \(store.displayLimit))")
             } else {
                 Text("\(store.fileCount) файлов · \(store.totalMatches) совпадений")
             }

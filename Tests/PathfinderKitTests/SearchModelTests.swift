@@ -44,6 +44,28 @@ final class SearchModelTests: XCTestCase {
         XCTAssertNotNil(model.lastError)
     }
 
+    func test_displayCapSkipsAssemblyBeyondLimit() async {
+        let raws = (0..<5).map { i in
+            RawMatch(file: URL(fileURLWithPath: "/f\(i)"), lineNumber: 1,
+                     matchLine: "x", matchRange: 0..<1)
+        }
+        let engine = FakeEngine(matches: raws)
+        let store = ResultsStore(displayLimit: 2)
+        let counter = CallCounter()
+        let model = SearchModel(engine: engine, store: store, fileLinesProvider: { _ in
+            counter.increment()
+            return ["x"]
+        })
+        model.pattern = "x"
+        model.basePath = URL(fileURLWithPath: "/")
+
+        await model.runNow()
+
+        XCTAssertLessThanOrEqual(counter.count, 2)
+        XCTAssertEqual(store.displayedCount, 2)
+        XCTAssertEqual(store.totalMatches, 5)
+    }
+
     func test_invalidRegexSetsRegexError() {
         let model = SearchModel(engine: FakeEngine(), store: ResultsStore(),
                                 fileLinesProvider: { _ in [] })
@@ -52,4 +74,12 @@ final class SearchModelTests: XCTestCase {
         model.pattern = "\\d+"
         XCTAssertNil(model.regexError)
     }
+}
+
+/// Thread-safe invocation counter for use inside @Sendable closures under test.
+final class CallCounter: @unchecked Sendable {
+    private var value = 0
+    private let lock = NSLock()
+    func increment() { lock.lock(); value += 1; lock.unlock() }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return value }
 }

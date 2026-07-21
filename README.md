@@ -94,11 +94,11 @@ To publish it:
 
 2. Create a GitHub Release tagged `v1.0` and attach `dist/Pathfinder-1.0.zip`.
 3. Put [`Casks/pathfinder.rb`](Casks/pathfinder.rb) in a tap repo named
-   `homebrew-tap` (i.e. `github.com/<owner>/homebrew-tap`), filling in
+   `homebrew-tap` (i.e. `github.com/kuzniatsou-andrei/homebrew-tap`), filling in
    `version`, `sha256`, and the release `url`.
 4. Users then install with:
 
-       brew tap <owner>/tap
+       brew tap kuzniatsou-andrei/tap
        brew install --cask pathfinder
 
 The build is **ad-hoc signed, not notarized**; the cask strips the quarantine
@@ -120,9 +120,9 @@ isn't writable without sudo) and pins it to the Dock. After that, launch
 > App Intents / `linkd` registration errors) and shows no Dock icon. Always
 > use the `.app` bundle.
 >
-> Note: the installed app's binary keeps an absolute rpath into this repo's
-> `Vendor/fff/target/release`, so keep the repo in place (a release build for
-> distribution would relocate the dylib with an `@loader_path` rpath instead).
+> The bundle is self-contained: `make-app.sh` embeds `libfff_c.dylib` in
+> `Contents/Frameworks` with an `@rpath` install name, so the installed app
+> does **not** depend on this repo staying in place.
 
 ## Test
 

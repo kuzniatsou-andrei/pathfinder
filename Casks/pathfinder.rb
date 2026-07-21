@@ -1,20 +1,20 @@
 # Homebrew Cask for Pathfinder.
 #
 # Ship this file from a tap repo named `homebrew-<something>` (e.g.
-# github.com/<owner>/homebrew-tap), at Casks/pathfinder.rb. Then:
-#     brew tap <owner>/tap
+# github.com/kuzniatsou-andrei/homebrew-tap), at Casks/pathfinder.rb. Then:
+#     brew tap kuzniatsou-andrei/tap
 #     brew install --cask pathfinder
 #
 # Fill `version`/`sha256` from `scripts/make-release.sh`, and point `url` at the
-# zip you attached to the matching GitHub Release. Replace <owner>.
+# zip you attached to the matching GitHub Release. Replace kuzniatsou-andrei.
 cask "pathfinder" do
   version "1.0"
   sha256 "REPLACE_WITH_SHA256_FROM_make-release.sh"
 
-  url "https://github.com/<owner>/pathfinder/releases/download/v#{version}/Pathfinder-#{version}.zip"
+  url "https://github.com/kuzniatsou-andrei/pathfinder/releases/download/v#{version}/Pathfinder-#{version}.zip"
   name "Pathfinder"
   desc "Simple macOS file-search app (text/regex/fuzzy) over the fff engine"
-  homepage "https://github.com/<owner>/pathfinder"
+  homepage "https://github.com/kuzniatsou-andrei/pathfinder"
 
   app "Pathfinder.app"
 

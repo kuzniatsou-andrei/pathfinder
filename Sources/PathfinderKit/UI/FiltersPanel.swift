@@ -11,9 +11,9 @@ public struct FiltersPanel: View {
         DisclosureGroup("Фильтры и контекст") {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    TextField("include *.kt,*.json", text: $includeText)
+                    TextField("include *.kt, *.json", text: $includeText)
                         .onChange(of: includeText) { _, v in model.includeGlobs = splitGlobs(v) }
-                    TextField("exclude build/", text: $excludeText)
+                    TextField("exclude build, target, *.iml", text: $excludeText)
                         .onChange(of: excludeText) { _, v in model.excludeGlobs = splitGlobs(v) }
                 }
                 Toggle("Исключить бинарные", isOn: $model.excludeBinary)

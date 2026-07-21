@@ -14,25 +14,32 @@ public struct FileFilter {
     }
 
     private func matches(_ url: URL, glob: String) -> Bool {
-        let target = glob.contains("/")
-            ? url.path.replacingOccurrences(of: query.basePath.path + "/", with: "")
+        guard let regex = globToRegex(glob) else { return false }
+        let relativePath = url.path.hasPrefix(query.basePath.path + "/")
+            ? String(url.path.dropFirst((query.basePath.path + "/").count))
             : url.lastPathComponent
-        return globToRegex(glob).firstMatch(
-            in: target, range: NSRange(target.startIndex..., in: target)) != nil
+        let components = relativePath.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+
+        var targets: Set<String> = [url.lastPathComponent, relativePath]
+        targets.formUnion(components)
+
+        return targets.contains { target in
+            regex.firstMatch(in: target, range: NSRange(target.startIndex..., in: target)) != nil
+        }
     }
 
-    private func globToRegex(_ glob: String) -> NSRegularExpression {
+    private func globToRegex(_ glob: String) -> NSRegularExpression? {
         var re = "^"
         for ch in glob {
             switch ch {
-            case "*": re += "[^/]*"
-            case "?": re += "[^/]"
-            case ".", "(", ")", "+", "|", "^", "$", "\\", "[", "]", "{", "}":
+            case "*": re += ".*"
+            case "!": re += "."
+            case ".", "(", ")", "+", "|", "^", "$", "\\", "[", "]", "{", "}", "?":
                 re += "\\" + String(ch)
             default: re += String(ch)
             }
         }
         re += "$"
-        return try! NSRegularExpression(pattern: re)
+        return try? NSRegularExpression(pattern: re)
     }
 }

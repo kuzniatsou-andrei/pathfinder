@@ -21,11 +21,11 @@ search-and-replace with undo; reveal in Finder.
   - `*` matches within a path segment; `**` crosses directories; `?` = one char.
   - Leading `/` anchors to the search root; a trailing `/` targets a directory.
   - A pattern with no `/` matches by **basename at any depth** — so `build`
-    excludes everything under any `build/` directory, while `feature-*`
-    excludes `feature-107/…` but **not** `feature/…`.
+    excludes everything under any `build/` directory, while `src-*` excludes
+    `src-generated/…` but **not** `src/…`.
   - `!pattern` **re-includes** (negation), evaluated in order.
 - Multiple patterns are separated by **`|`** or newlines
-  (e.g. `build/ | **/target | feature-* | !keep/`).
+  (e.g. `build/ | target/ | src/ | bin/`).
 - Exclude binary files; max file-size limit.
 - **Context lines** ±N (default 1), adjustable.
 

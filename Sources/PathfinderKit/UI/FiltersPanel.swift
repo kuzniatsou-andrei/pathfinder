@@ -31,7 +31,7 @@ public struct FiltersPanel: View {
                             .onChange(of: model.includeGlobs) { _, g in
                                 if splitGlobs(includeText) != g { includeText = g.joined(separator: " | ") }
                             }
-                        TextField("exclude build/ | **/target | feature-* | !keep/", text: $excludeText)
+                        TextField("exclude build/ | target/ | src/ | bin/", text: $excludeText)
                             .onChange(of: excludeText) { _, v in model.excludeGlobs = splitGlobs(v) }
                             .onChange(of: model.excludeGlobs) { _, g in
                                 if splitGlobs(excludeText) != g { excludeText = g.joined(separator: " | ") }

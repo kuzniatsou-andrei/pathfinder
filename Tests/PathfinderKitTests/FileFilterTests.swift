@@ -44,13 +44,13 @@ final class FileFilterTests: XCTestCase {
     }
 
     func test_basenameWildcardMatchesWholeComponentOnly() {
-        // Critical regression: `feature-*` must exclude the TR folders but
-        // must NOT match a component that is merely a prefix match substring,
-        // i.e. it should not exclude `feature/...` (component is "feature", not "feature-*").
-        let filter = FileFilter(query: q(exclude: ["feature-*"]))
-        XCTAssertFalse(filter.accepts(url("feature-107/x.kt"), sizeBytes: 10, isBinary: false))
-        XCTAssertFalse(filter.accepts(url("feature-511/y.kt"), sizeBytes: 10, isBinary: false))
-        XCTAssertTrue(filter.accepts(url("feature/z.java"), sizeBytes: 10, isBinary: false))
+        // Critical regression: `src-*` must exclude `src-*` folders but must NOT
+        // match a component that is only a prefix of the pattern — i.e. it must
+        // not exclude `src/...` (component is "src", not matching "src-*").
+        let filter = FileFilter(query: q(exclude: ["src-*"]))
+        XCTAssertFalse(filter.accepts(url("src-generated/x.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertFalse(filter.accepts(url("src-legacy/y.kt"), sizeBytes: 10, isBinary: false))
+        XCTAssertTrue(filter.accepts(url("src/z.java"), sizeBytes: 10, isBinary: false))
     }
 
     func test_basenameDirectoryExcludesContents() {

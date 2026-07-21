@@ -4,3 +4,4 @@ DerivedData/
 *.xcuserstate
 Pathfinder.app/
 .build/
+dist/

@@ -79,7 +79,34 @@ so it shows up correctly in the Dock and Finder):
     ./scripts/make-app.sh        # builds Pathfinder.app in the repo root
     open Pathfinder.app
 
-### Install (Applications + Dock)
+### Install via Homebrew (cask)
+
+Pathfinder is a GUI app, so it ships as a **Homebrew Cask** (not a formula).
+The bundle produced by `make-app.sh` is self-contained (`libfff_c.dylib` is
+embedded in `Contents/Frameworks` with an `@rpath`/`@executable_path` install
+name and re-signed ad-hoc), so it runs on any Mac without this repo present.
+
+To publish it:
+
+1. Cut the artifact and get its checksum:
+
+       ./scripts/make-release.sh 1.0      # → dist/Pathfinder-1.0.zip + sha256
+
+2. Create a GitHub Release tagged `v1.0` and attach `dist/Pathfinder-1.0.zip`.
+3. Put [`Casks/pathfinder.rb`](Casks/pathfinder.rb) in a tap repo named
+   `homebrew-tap` (i.e. `github.com/<owner>/homebrew-tap`), filling in
+   `version`, `sha256`, and the release `url`.
+4. Users then install with:
+
+       brew tap <owner>/tap
+       brew install --cask pathfinder
+
+The build is **ad-hoc signed, not notarized**; the cask strips the quarantine
+flag on install so Gatekeeper allows it. For a smoother, warning-free install,
+sign with an Apple **Developer ID** and **notarize** the zip before releasing,
+then drop the quarantine-stripping `postflight` from the cask.
+
+### Install locally (Applications + Dock)
 
     ./scripts/make-app.sh install
 

@@ -30,6 +30,27 @@ mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 cp "$BIN_DIR/PathfinderApp" "$CONTENTS/MacOS/Pathfinder"
 cp "$ROOT/Sources/PathfinderApp/Info.plist" "$CONTENTS/Info.plist"
 
+# --- Make the bundle self-contained (relocatable) ---------------------------
+# The binary links libfff_c.dylib by an absolute path into Vendor/. Embed the
+# dylib in Contents/Frameworks and rewrite the load command to @rpath so the
+# app runs on any machine (required for distribution / Homebrew).
+mkdir -p "$CONTENTS/Frameworks"
+DYLIB_SRC="$ROOT/Vendor/fff/target/release/libfff_c.dylib"
+cp "$DYLIB_SRC" "$CONTENTS/Frameworks/libfff_c.dylib"
+OLD_REF="$(otool -L "$CONTENTS/MacOS/Pathfinder" | awk '/libfff_c\.dylib/{print $1; exit}')"
+install_name_tool -id "@rpath/libfff_c.dylib" "$CONTENTS/Frameworks/libfff_c.dylib"
+if [[ -n "$OLD_REF" ]]; then
+  install_name_tool -change "$OLD_REF" "@rpath/libfff_c.dylib" "$CONTENTS/MacOS/Pathfinder"
+fi
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$CONTENTS/MacOS/Pathfinder" 2>/dev/null || true
+# Drop the machine-local dev rpath if present (harmless if absent).
+install_name_tool -delete_rpath "$ROOT/Vendor/fff/target/release" "$CONTENTS/MacOS/Pathfinder" 2>/dev/null || true
+# Re-sign ad-hoc: install_name_tool invalidates the signature; unsigned code
+# won't launch on Apple Silicon. (For real distribution, sign with a Developer
+# ID and notarize instead — see README.)
+codesign --force --sign - --timestamp=none "$CONTENTS/Frameworks/libfff_c.dylib" >/dev/null 2>&1 || true
+codesign --force --deep --sign - --timestamp=none "$APP" >/dev/null 2>&1 || true
+
 # App icon: build AppIcon.icns from a single PNG if one was provided.
 ICON_PNG="$ROOT/Sources/PathfinderApp/Resources/AppIcon.png"
 if [[ -f "$ICON_PNG" ]]; then

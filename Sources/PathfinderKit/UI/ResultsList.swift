@@ -7,11 +7,16 @@ public struct ResultsList: View {
     var onReveal: (URL) -> Void
     var onOpen: (URL) -> Void
     var onDelete: (URL) -> Void
+    var onExcludeFile: (URL) -> Void
+    var onExcludeFolder: (URL) -> Void
 
     public init(store: ResultsStore, relativeTo: URL? = nil, onReveal: @escaping (URL) -> Void,
-                onOpen: @escaping (URL) -> Void, onDelete: @escaping (URL) -> Void) {
+                onOpen: @escaping (URL) -> Void, onDelete: @escaping (URL) -> Void,
+                onExcludeFile: @escaping (URL) -> Void = { _ in },
+                onExcludeFolder: @escaping (URL) -> Void = { _ in }) {
         self.store = store; self.relativeTo = relativeTo
         self.onReveal = onReveal; self.onOpen = onOpen; self.onDelete = onDelete
+        self.onExcludeFile = onExcludeFile; self.onExcludeFolder = onExcludeFolder
     }
 
     private func copyToPasteboard(_ s: String) {
@@ -47,9 +52,16 @@ public struct ResultsList: View {
                             .contextMenu {
                                 Button("Показать в Finder") { onReveal(file.file) }
                                 Button("Открыть в редакторе") { onOpen(file.file) }
+                                Divider()
                                 Button("Копировать путь") { copyToPasteboard(file.file.path) }
+                                Button("Копировать относительный путь") { copyToPasteboard(displayPath(file.file)) }
+                                Button("Копировать имя файла") { copyToPasteboard(file.file.lastPathComponent) }
+                                Button("Копировать папку") { copyToPasteboard(file.file.deletingLastPathComponent().path) }
                                 Button("Копировать строку") { copyToPasteboard(m.matchLine) }
                                 Button("Копировать блок") { copyToPasteboard(blockText(m)) }
+                                Divider()
+                                Button("Исключить файл «\(file.file.lastPathComponent)»") { onExcludeFile(file.file) }
+                                Button("Исключить папку «\(file.file.deletingLastPathComponent().lastPathComponent)»") { onExcludeFolder(file.file) }
                                 Divider()
                                 Button("Удалить", role: .destructive) { onDelete(file.file) }
                             }

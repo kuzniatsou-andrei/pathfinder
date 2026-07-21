@@ -42,7 +42,9 @@ public struct RootView: View {
                 ResultsList(store: store, relativeTo: model.basePath,
                             onReveal: { ops.revealInFinder($0) },
                             onOpen: { ops.open($0, withEditor: nil) },
-                            onDelete: runDelete)
+                            onDelete: runDelete,
+                            onExcludeFile: { addExclude($0.lastPathComponent) },
+                            onExcludeFolder: { addExclude($0.deletingLastPathComponent().lastPathComponent) })
                     .frame(minWidth: 320)
                 PreviewPane(store: store, model: model).frame(minWidth: 360)
             }
@@ -76,6 +78,17 @@ public struct RootView: View {
         store.reset()
         searchInResults = false
         model.restrictToFiles = nil
+    }
+
+    /// Add a glob to the exclude filter (dedup) and re-run the search if possible.
+    private func addExclude(_ glob: String) {
+        let g = glob.trimmingCharacters(in: .whitespaces)
+        guard !g.isEmpty else { return }
+        if !model.excludeGlobs.contains(g) { model.excludeGlobs.append(g) }
+        if !model.pattern.isEmpty, model.basePath != nil {
+            searchTask?.cancel()
+            searchTask = Task { await model.runNow() }
+        }
     }
 
     private func deleteHistoryItem(_ s: String) {

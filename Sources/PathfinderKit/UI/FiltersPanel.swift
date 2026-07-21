@@ -13,8 +13,14 @@ public struct FiltersPanel: View {
                 HStack {
                     TextField("include *.kt, *.json", text: $includeText)
                         .onChange(of: includeText) { _, v in model.includeGlobs = splitGlobs(v) }
+                        .onChange(of: model.includeGlobs) { _, g in
+                            if splitGlobs(includeText) != g { includeText = g.joined(separator: ", ") }
+                        }
                     TextField("exclude build, target | *.iml", text: $excludeText)
                         .onChange(of: excludeText) { _, v in model.excludeGlobs = splitGlobs(v) }
+                        .onChange(of: model.excludeGlobs) { _, g in
+                            if splitGlobs(excludeText) != g { excludeText = g.joined(separator: ", ") }
+                        }
                 }
                 Toggle("Исключить бинарные", isOn: $model.excludeBinary)
                 HStack {
@@ -22,6 +28,10 @@ public struct FiltersPanel: View {
                     Stepper("после: \(model.contextAfter)", value: $model.contextAfter, in: 0...20)
                 }
             }.textFieldStyle(.roundedBorder).padding(.top, 4)
+                .onAppear {
+                    includeText = model.includeGlobs.joined(separator: ", ")
+                    excludeText = model.excludeGlobs.joined(separator: ", ")
+                }
         }.padding(.horizontal, 8)
     }
 

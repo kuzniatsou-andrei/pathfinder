@@ -28,7 +28,7 @@ public struct RootView: View {
             FiltersPanel(model: model)
             Divider()
             HSplitView {
-                ResultsList(store: store,
+                ResultsList(store: store, relativeTo: model.basePath,
                             onReveal: { ops.revealInFinder($0) },
                             onOpen: { ops.open($0, withEditor: nil) },
                             onDelete: runDelete)

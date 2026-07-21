@@ -3,19 +3,30 @@ import AppKit
 
 public struct ResultsList: View {
     let store: ResultsStore
+    var relativeTo: URL?
     var onReveal: (URL) -> Void
     var onOpen: (URL) -> Void
     var onDelete: (URL) -> Void
 
-    public init(store: ResultsStore, onReveal: @escaping (URL) -> Void,
+    public init(store: ResultsStore, relativeTo: URL? = nil, onReveal: @escaping (URL) -> Void,
                 onOpen: @escaping (URL) -> Void, onDelete: @escaping (URL) -> Void) {
-        self.store = store; self.onReveal = onReveal; self.onOpen = onOpen; self.onDelete = onDelete
+        self.store = store; self.relativeTo = relativeTo
+        self.onReveal = onReveal; self.onOpen = onOpen; self.onDelete = onDelete
+    }
+
+    /// Path shown in a section header: relative to the searched folder so that
+    /// same-named files in different directories are distinguishable.
+    private func displayPath(_ file: URL) -> String {
+        if let base = relativeTo, file.path.hasPrefix(base.path + "/") {
+            return String(file.path.dropFirst(base.path.count + 1))
+        }
+        return file.lastPathComponent
     }
 
     public var body: some View {
         List {
             ForEach(store.files, id: \.file) { file in
-                Section(header: Text("\(file.file.lastPathComponent) (\(file.matches.count))").bold()) {
+                Section(header: Text("\(displayPath(file.file)) (\(file.matches.count))").bold()) {
                     ForEach(Array(file.matches.enumerated()), id: \.offset) { _, m in
                         MatchRow(match: m)
                             .contentShape(Rectangle())

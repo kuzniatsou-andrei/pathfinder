@@ -24,7 +24,7 @@ public struct RootView: View {
         VStack(spacing: 0) {
             SearchBar(model: model, canUndo: canUndo,
                       onFolderPick: pickFolder, onReplace: runReplace, onUndo: runUndo,
-                      onSearchToggle: toggleSearch)
+                      onSearchToggle: toggleSearch, onClear: clearSearch)
             FiltersPanel(model: model)
             Divider()
             HSplitView {
@@ -51,6 +51,14 @@ public struct RootView: View {
             searchTask?.cancel()
             searchTask = Task { await model.runNow() }
         }
+    }
+
+    private func clearSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        model.pattern = ""
+        model.lastError = nil
+        store.reset()
     }
 
     private func pickFolder() {

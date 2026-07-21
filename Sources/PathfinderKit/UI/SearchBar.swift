@@ -7,13 +7,15 @@ public struct SearchBar: View {
     var onReplace: () -> Void
     var onUndo: () -> Void
     var onSearchToggle: () -> Void
+    var onClear: () -> Void
 
     public init(model: SearchModel, canUndo: Bool,
                 onFolderPick: @escaping () -> Void, onReplace: @escaping () -> Void,
-                onUndo: @escaping () -> Void, onSearchToggle: @escaping () -> Void) {
+                onUndo: @escaping () -> Void, onSearchToggle: @escaping () -> Void,
+                onClear: @escaping () -> Void) {
         self._model = Bindable(model); self.canUndo = canUndo
         self.onFolderPick = onFolderPick; self.onReplace = onReplace; self.onUndo = onUndo
-        self.onSearchToggle = onSearchToggle
+        self.onSearchToggle = onSearchToggle; self.onClear = onClear
     }
 
     // Enabled when there is a query to run; a missing folder is handled by
@@ -51,6 +53,10 @@ public struct SearchBar: View {
                     }
                 }
                 .disabled(!model.isSearching && !runnable)
+                Button { onClear() } label: {
+                    Label("Очистить", systemImage: "xmark.circle")
+                }
+                .disabled(model.pattern.isEmpty)
             }
             if let re = model.regexError {
                 HStack { Text(re).foregroundStyle(.red).font(.caption); Spacer() }

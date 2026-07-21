@@ -67,7 +67,7 @@ public struct PreviewPane: View {
 
     /// Whole-file text with every occurrence of the query highlighted yellow.
     /// Skips highlighting on very large files (perf) and on empty patterns.
-    static func highlighted(_ text: String, pattern: String, mode: SearchMode) -> AttributedString {
+    nonisolated static func highlighted(_ text: String, pattern: String, mode: SearchMode) -> AttributedString {
         var attr = AttributedString(text)
         guard !pattern.isEmpty, text.utf16.count < 300_000 else { return attr }
         for r in matchRanges(in: text, pattern: pattern, mode: mode) {
@@ -80,7 +80,7 @@ public struct PreviewPane: View {
         return attr
     }
 
-    static func matchRanges(in text: String, pattern: String, mode: SearchMode) -> [Range<String.Index>] {
+    nonisolated static func matchRanges(in text: String, pattern: String, mode: SearchMode) -> [Range<String.Index>] {
         switch mode {
         case .regex:
             guard let re = try? NSRegularExpression(pattern: pattern) else { return [] }

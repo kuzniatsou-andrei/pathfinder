@@ -9,7 +9,7 @@
 # zip you attached to the matching GitHub Release. Replace kuzniatsou-andrei.
 cask "pathfinder" do
   version "1.0"
-  sha256 "REPLACE_WITH_SHA256_FROM_make-release.sh"
+  sha256 "441e4e638c5fb3ca50cfcfd96b1286d3e5717dfccd5a87634ac8e03c00c26578"
 
   url "https://github.com/kuzniatsou-andrei/pathfinder/releases/download/v#{version}/Pathfinder-#{version}.zip"
   name "Pathfinder"

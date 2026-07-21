@@ -15,6 +15,7 @@ public final class SearchModel {
     public var contextAfter: Int = 2
     public private(set) var isSearching: Bool = false
     public var lastError: String?
+    public var replacement: String = ""
 
     private let engine: SearchEngine
     private let store: ResultsStore

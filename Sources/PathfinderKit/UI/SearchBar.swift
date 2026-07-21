@@ -27,6 +27,9 @@ public struct SearchBar: View {
                     .textFieldStyle(.roundedBorder)
                 if model.isSearching { ProgressView().scaleEffect(0.5) }
             }
+            if let re = model.regexError {
+                HStack { Text(re).foregroundStyle(.red).font(.caption); Spacer() }
+            }
             HStack {
                 TextField("Заменить", text: $model.replacement)
                     .textFieldStyle(.roundedBorder)

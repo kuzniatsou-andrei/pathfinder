@@ -43,4 +43,13 @@ final class SearchModelTests: XCTestCase {
         await model.runNow()
         XCTAssertNotNil(model.lastError)
     }
+
+    func test_invalidRegexSetsRegexError() {
+        let model = SearchModel(engine: FakeEngine(), store: ResultsStore(),
+                                fileLinesProvider: { _ in [] })
+        model.mode = .regex; model.pattern = "([unclosed"
+        XCTAssertNotNil(model.regexError)
+        model.pattern = "\\d+"
+        XCTAssertNil(model.regexError)
+    }
 }

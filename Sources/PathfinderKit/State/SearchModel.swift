@@ -31,9 +31,16 @@ public final class SearchModel {
         self.fileLinesProvider = fileLinesProvider; self.debounceMs = debounceMs
     }
 
+    public var regexError: String? {
+        guard mode == .regex, !pattern.isEmpty else { return nil }
+        do { _ = try NSRegularExpression(pattern: pattern); return nil }
+        catch { return "Некорректный regex" }
+    }
+
     /// Build a query from current state, or nil if not runnable.
     private func makeQuery() -> SearchQuery? {
         guard !pattern.isEmpty, let base = basePath else { return nil }
+        if mode == .regex, regexError != nil { return nil }
         return SearchQuery(pattern: pattern, mode: mode, basePath: base,
                            includeGlobs: includeGlobs, excludeGlobs: excludeGlobs,
                            maxFileSizeBytes: maxFileSizeBytes, excludeBinary: excludeBinary,

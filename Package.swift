@@ -21,7 +21,11 @@ let package = Package(
     name: "Pathfinder",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "PathfinderApp", dependencies: ["PathfinderKit"]),
+        .executableTarget(
+            name: "PathfinderApp",
+            dependencies: ["PathfinderKit"],
+            exclude: ["Info.plist"]
+        ),
         .target(
             name: "CFffShim",
             cSettings: [

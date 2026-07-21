@@ -8,7 +8,12 @@
 # the app icon; without it the app builds fine with the default icon.
 set -euo pipefail
 
-CONFIG="${1:-release}"
+# Usage:
+#   scripts/make-app.sh [debug|release]   build the bundle (default release)
+#   scripts/make-app.sh install           build release, copy to /Applications
+#                                          (or ~/Applications) and pin to the Dock
+CMD="${1:-release}"
+if [ "$CMD" = "install" ]; then CONFIG="release"; DO_INSTALL=1; else CONFIG="$CMD"; DO_INSTALL=0; fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -46,3 +51,28 @@ touch "$APP"
 
 echo "==> done: $APP"
 echo "    launch with: open \"$APP\""
+
+if [[ "$DO_INSTALL" == "1" ]]; then
+  # Prefer /Applications (visible to everyone); fall back to ~/Applications if
+  # it isn't writable without sudo.
+  if [[ -w /Applications ]]; then DEST_DIR="/Applications"; else DEST_DIR="$HOME/Applications"; fi
+  mkdir -p "$DEST_DIR"
+  DEST="$DEST_DIR/Pathfinder.app"
+  echo "==> installing to $DEST"
+  rm -rf "$DEST"
+  cp -R "$APP" "$DEST"
+
+  # Pin to the Dock (skip if already present), then restart the Dock.
+  PINNED=0
+  defaults read com.apple.dock persistent-apps 2>/dev/null | grep -q "$DEST" && PINNED=1 || true
+  if [[ "$PINNED" == "0" ]]; then
+    defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>$DEST</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
+    killall Dock 2>/dev/null || true
+    echo "==> pinned to Dock"
+  else
+    echo "==> already pinned to Dock"
+  fi
+  echo "==> installed. Open from Launchpad/Spotlight/Dock as \"Pathfinder\"."
+fi
+
+exit 0

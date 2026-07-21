@@ -1,0 +1,3 @@
+[submodule "Vendor/fff"]
+	path = Vendor/fff
+	url = https://github.com/dmtrKovalenko/fff

@@ -1,0 +1,4 @@
+module CFffShim {
+    header "fff_shim.h"
+    export *
+}

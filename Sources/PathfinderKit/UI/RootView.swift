@@ -8,6 +8,8 @@ public struct RootView: View {
     @State private var canUndo: Bool = false
     @State private var searchInResults = false
     @State private var historyItems: [String] = SearchHistory().items()
+    // Results/preview split fraction (0…1), persisted; default 50/50.
+    @AppStorage("pathfinder.splitFraction") private var splitFraction: Double = 0.5
     private let ops = FileOps()
     private let replaceEngine = ReplaceEngine()
     private let folderMemory = FolderMemory()
@@ -38,15 +40,36 @@ public struct RootView: View {
                       onClearHistory: clearHistory)
             FiltersPanel(model: model)
             Divider()
-            HSplitView {
-                ResultsList(store: store, relativeTo: model.basePath,
-                            onReveal: { ops.revealInFinder($0) },
-                            onOpen: { ops.open($0, withEditor: nil) },
-                            onDelete: runDelete,
-                            onExcludeFile: { addExclude($0.lastPathComponent) },
-                            onExcludeFolder: { addExclude($0.deletingLastPathComponent().lastPathComponent) })
-                    .frame(minWidth: 320)
-                PreviewPane(store: store, model: model).frame(minWidth: 360)
+            GeometryReader { geo in
+                let total = geo.size.width
+                let handle: CGFloat = 6
+                let leftW = max(200, min(total - 200, total * splitFraction))
+                HStack(spacing: 0) {
+                    ResultsList(store: store, relativeTo: model.basePath,
+                                onReveal: { ops.revealInFinder($0) },
+                                onOpen: { ops.open($0, withEditor: nil) },
+                                onDelete: runDelete,
+                                onExcludeFile: { addExclude($0.lastPathComponent) },
+                                onExcludeFolder: { addExclude($0.deletingLastPathComponent().lastPathComponent) })
+                        .frame(width: leftW)
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.001))
+                        .overlay(Divider())
+                        .frame(width: handle)
+                        .contentShape(Rectangle())
+                        .onHover { inside in
+                            if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                        }
+                        .gesture(
+                            DragGesture(coordinateSpace: .named("split")).onChanged { value in
+                                guard total > 0 else { return }
+                                splitFraction = min(max(value.location.x / total, 0.15), 0.85)
+                            }
+                        )
+                    PreviewPane(store: store, model: model)
+                        .frame(width: max(0, total - leftW - handle))
+                }
+                .coordinateSpace(name: "split")
             }
             Divider()
             StatusBar(store: store, model: model)

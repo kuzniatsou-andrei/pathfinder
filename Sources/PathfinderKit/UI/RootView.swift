@@ -9,16 +9,20 @@ public struct RootView: View {
     @State private var searchInResults = false
     private let ops = FileOps()
     private let replaceEngine = ReplaceEngine()
+    private let folderMemory = FolderMemory()
 
     public init() {
         let store = ResultsStore()
         self._store = State(initialValue: store)
-        self._model = State(initialValue: SearchModel(
+        let model = SearchModel(
             engine: FffEngine(), store: store,
             fileLinesProvider: { url in
                 (try? String(contentsOf: url, encoding: .utf8))?
                     .components(separatedBy: "\n") ?? []
-            }))
+            })
+        // Restore the last searched folder if it still exists.
+        model.basePath = FolderMemory().loadValidDirectory()
+        self._model = State(initialValue: model)
     }
 
     public var body: some View {
@@ -73,6 +77,7 @@ public struct RootView: View {
         panel.canChooseDirectories = true; panel.canChooseFiles = false
         if panel.runModal() == .OK, let url = panel.url {
             model.basePath = url
+            folderMemory.save(url)
         }
     }
 
